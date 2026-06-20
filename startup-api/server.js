@@ -9,7 +9,7 @@ const app = express();
 
 // 1. Security & Middleware
 // This allows your Vite frontend (running on port 5173) to talk to this backend
-app.use(cors({ origin: 'http://localhost:5173' })); 
+app.use(cors()); 
 app.use(express.json());
 
 // 2. Initialize AI
