@@ -147,11 +147,21 @@ function App() {
                   <p className="text-zinc-200 font-medium leading-relaxed">{result.techStackRecommendation}</p>
                 </div>
 
-                {/* Database Schema */}
-                <div className="bg-zinc-900/40 backdrop-blur-md border border-zinc-800/50 rounded-3xl p-8">
-                  <h3 className="text-zinc-500 text-sm uppercase tracking-widest mb-4 font-mono">Core DB Collections</h3>
-                  <p className="text-zinc-400 font-mono text-sm whitespace-pre-wrap">{result.databaseSchema}</p>
-                </div>
+                {/* Architectural Summary */}
+<div className="bg-zinc-900/40 backdrop-blur-md border border-zinc-800/50 rounded-3xl p-8">
+  <h3 className="text-zinc-500 text-sm uppercase tracking-widest mb-4 font-mono">Infrastructure Overview</h3>
+  <div className="text-zinc-300 font-light leading-relaxed space-y-4">
+    <p>
+      The proposed system architecture is designed for <strong>high-concurrency data ingestion</strong> and 
+      <strong> transactional integrity</strong>, leveraging a microservices pattern to isolate the 
+      translation engine from the core audit and logging services.
+    </p>
+    <p>
+      Data persistence is optimized for relational consistency, ensuring that all legacy 
+      code transitions are fully traceable and compliant with rigorous financial audit standards.
+    </p>
+  </div>
+</div>
 
                 {/* Compliance Checklist */}
                 <div className="bg-zinc-900/40 backdrop-blur-md border border-zinc-800/50 rounded-3xl p-8">
