@@ -18,9 +18,9 @@ function App() {
     setResult(null);
 
     try {
-      const response = await axios.post('http://localhost:3001/api/validate', {
-        idea: idea
-      });
+      const response = await axios.post('https://market-fit-api.onrender.com/api/validate', {
+  idea: idea
+});
       setResult(response.data);
     } catch (err) {
       setError("Connection to the intelligence layer failed. Check your backend.");
