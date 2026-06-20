@@ -18,9 +18,10 @@ function App() {
     setResult(null);
 
     try {
+      // Make sure this is pointing to your live Render URL
       const response = await axios.post('https://market-fit-api.onrender.com/api/validate', {
-  idea: idea
-});
+        idea: idea
+      });
       setResult(response.data);
     } catch (err) {
       setError("Connection to the intelligence layer failed. Check your backend.");
@@ -61,14 +62,14 @@ function App() {
       <div className="max-w-4xl mx-auto py-20 px-6 sm:px-8 relative z-10">
         
         {/* Header */}
-<div className="text-center mb-16 space-y-4">
-  <h1 className="text-5xl sm:text-6xl font-medium tracking-tight text-transparent bg-clip-text bg-gradient-to-b from-white to-zinc-500 pb-2 selection:bg-zinc-800 selection:text-white">
-    Market Fit Evaluator.
-  </h1>
-  <p className="text-lg text-zinc-400 font-light max-w-xl mx-auto">
-    Pitch your vision. Receive ruthless, data-driven feedback from a simulated tier-one venture capitalist.
-  </p>
-</div>
+        <div className="text-center mb-16 space-y-4">
+          <h1 className="text-5xl sm:text-6xl font-medium tracking-tight text-transparent bg-clip-text bg-gradient-to-b from-white to-zinc-500 pb-2 selection:bg-zinc-800 selection:text-white">
+            Architect AI.
+          </h1>
+          <p className="text-lg text-zinc-400 font-light max-w-xl mx-auto">
+            Pitch your vision. Get a brutal, data-driven technical architecture and compliance blueprint.
+          </p>
+        </div>
 
         {/* Input Area */}
         <div className="relative group mb-12">
@@ -77,7 +78,7 @@ function App() {
             <textarea
               rows="4"
               className="w-full bg-transparent border-0 text-zinc-200 placeholder-zinc-600 focus:ring-0 p-6 resize-none text-lg font-light leading-relaxed outline-none"
-              placeholder="Describe your startup. Be specific about the problem and your solution..."
+              placeholder="Describe your software idea. Be specific about the problem and your solution..."
               value={idea}
               onChange={(e) => setIdea(e.target.value)}
             />
@@ -94,7 +95,7 @@ function App() {
                     <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
                     Processing
                   </>
-                ) : 'Evaluate Vision'}
+                ) : 'Generate Blueprint'}
               </button>
             </div>
           </div>
@@ -109,16 +110,16 @@ function App() {
               
               {/* Score Card */}
               <div className="col-span-1 bg-zinc-900/40 backdrop-blur-md border border-zinc-800/50 rounded-3xl p-8 flex flex-col items-center justify-center text-center">
-                <span className="text-zinc-500 text-sm uppercase tracking-widest mb-2 font-mono">Overall Score</span>
+                <span className="text-zinc-500 text-sm uppercase tracking-widest mb-2 font-mono">Feasibility</span>
                 <div className="text-7xl font-light tracking-tighter text-white mb-2">
-                  {result.scores.overallScore}
+                  {result.scores?.overallFeasibility || 0}
                 </div>
                 <span className="text-zinc-500 text-sm">Out of 100</span>
               </div>
 
               {/* Verdict Card */}
               <div className="col-span-1 md:col-span-2 bg-zinc-900/40 backdrop-blur-md border border-zinc-800/50 rounded-3xl p-8 flex flex-col justify-center">
-                <h3 className="text-zinc-500 text-sm uppercase tracking-widest mb-4 font-mono">The Verdict</h3>
+                <h3 className="text-zinc-500 text-sm uppercase tracking-widest mb-4 font-mono">Architect's Verdict</h3>
                 <p className="text-xl text-zinc-300 font-light leading-relaxed">
                   "{result.brutalVerdict}"
                 </p>
@@ -128,29 +129,38 @@ function App() {
             {/* Bottom Row: Metrics & Risks */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               
-              {/* Metrics */}
+              {/* Technical Metrics */}
               <div className="bg-zinc-900/40 backdrop-blur-md border border-zinc-800/50 rounded-3xl p-8">
-                <h3 className="text-zinc-500 text-sm uppercase tracking-widest mb-8 font-mono">Investment Metrics</h3>
-                <ScoreBar label="Market Size (TAM)" score={result.scores.marketSize} />
-                <ScoreBar label="Uniqueness (Moat)" score={result.scores.uniqueness} />
-                <ScoreBar label="Technical Feasibility" score={result.scores.feasibility} />
-                <ScoreBar label="Revenue Potential" score={result.scores.revenuePotential} />
+                <h3 className="text-zinc-500 text-sm uppercase tracking-widest mb-8 font-mono">Technical Load</h3>
+                <ScoreBar label="System Complexity" score={result.scores?.systemComplexity || 0} />
+                <ScoreBar label="Scalability Risk" score={result.scores?.scalabilityRisk || 0} />
+                <ScoreBar label="Security Requirements" score={result.scores?.securityRequirements || 0} />
+                <ScoreBar label="MVP Speed" score={result.scores?.mvpSpeed || 0} />
               </div>
 
-              {/* Pitch & Risks */}
+              {/* Stack & Compliance */}
               <div className="space-y-6">
+                
+                {/* Tech Stack */}
                 <div className="bg-zinc-900/40 backdrop-blur-md border border-zinc-800/50 rounded-3xl p-8">
-                  <h3 className="text-zinc-500 text-sm uppercase tracking-widest mb-4 font-mono">Refined One-Liner</h3>
-                  <p className="text-zinc-200 font-medium">{result.oneLinerPitch}</p>
+                  <h3 className="text-zinc-500 text-sm uppercase tracking-widest mb-4 font-mono">Recommended Stack</h3>
+                  <p className="text-zinc-200 font-medium leading-relaxed">{result.techStackRecommendation}</p>
                 </div>
 
+                {/* Database Schema */}
                 <div className="bg-zinc-900/40 backdrop-blur-md border border-zinc-800/50 rounded-3xl p-8">
-                  <h3 className="text-zinc-500 text-sm uppercase tracking-widest mb-4 font-mono text-red-400">Critical Risks</h3>
+                  <h3 className="text-zinc-500 text-sm uppercase tracking-widest mb-4 font-mono">Core DB Collections</h3>
+                  <p className="text-zinc-400 font-mono text-sm whitespace-pre-wrap">{result.databaseSchema}</p>
+                </div>
+
+                {/* Compliance Checklist */}
+                <div className="bg-zinc-900/40 backdrop-blur-md border border-zinc-800/50 rounded-3xl p-8">
+                  <h3 className="text-zinc-500 text-sm uppercase tracking-widest mb-4 font-mono text-yellow-400">Compliance & Legal</h3>
                   <ul className="space-y-3">
-                    {result.keyRisks.map((risk, index) => (
+                    {result.complianceChecklist?.map((item, index) => (
                       <li key={index} className="flex items-start text-zinc-400 text-sm leading-relaxed">
-                        <span className="text-red-500 mr-3 mt-0.5">✕</span>
-                        {risk}
+                        <span className="text-yellow-500 mr-3 mt-0.5">⚠</span>
+                        {item}
                       </li>
                     ))}
                   </ul>
