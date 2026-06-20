@@ -8,7 +8,7 @@ dotenv.config();
 const app = express();
 
 // 1. Security & Middleware
-// This allows your Vite frontend (running on port 5173) to talk to this backend
+// This allows your frontend to securely communicate with the backend from any origin
 app.use(cors()); 
 app.use(express.json());
 
@@ -48,8 +48,8 @@ app.post('/api/validate', async (req, res) => {
       model: 'gemini-2.5-flash',
       contents: idea,
       config: {
-        systemInstruction: vcSystemPrompt,
-        responseMimeType: "application/json", // Crucial: Forces clean JSON output
+        systemInstruction: architectSystemPrompt, // Fixed: Linked perfectly to the variable above
+        responseMimeType: "application/json",    // Forces clean JSON output from Gemini
       }
     });
 
@@ -59,12 +59,12 @@ app.post('/api/validate', async (req, res) => {
 
   } catch (error) {
     console.error('API Error:', error);
-    res.status(500).json({ error: 'Failed to evaluate pitch. The AI VC walked out of the room.' });
+    res.status(500).json({ error: 'Failed to evaluate blueprint. The Technical Architect system crashed.' });
   }
 });
 
 // 4. Start Server
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
-  console.log(`🚀 AI VC Backend running on http://localhost:${PORT}`);
+  console.log(`🚀 Technical Architect Backend running on http://localhost:${PORT}`);
 });
