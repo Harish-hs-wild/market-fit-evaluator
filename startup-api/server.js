@@ -2,17 +2,36 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { GoogleGenAI } from '@google/genai';
+import mongoose from 'mongoose';
 
 dotenv.config();
 
 const app = express();
-
-// 1. Security & Middleware
-// This allows your frontend to securely communicate with the backend from any origin
 app.use(cors()); 
 app.use(express.json());
 
-// 2. Initialize AI
+// 1. Connect to MongoDB
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => console.log('Connected to MongoDB successfully!'))
+  .catch((err) => console.error('MongoDB connection error:', err));
+
+// 2. Define the Database Schema
+const evaluationSchema = new mongoose.Schema({
+  originalIdea: { type: String, required: true },
+  systemComplexity: Number,
+  scalabilityRisk: Number,
+  securityRequirements: Number,
+  mvpSpeed: Number,
+  overallFeasibility: Number,
+  techStackRecommendation: String,
+  complianceChecklist: [String],
+  brutalVerdict: String,
+  createdAt: { type: Date, default: Date.now }
+});
+
+const Evaluation = mongoose.model('Evaluation', evaluationSchema);
+
+// 3. Initialize AI
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 const architectSystemPrompt = `
@@ -28,33 +47,46 @@ You MUST return your response STRICTLY as a valid JSON object matching this stru
     "mvpSpeed": number,
     "overallFeasibility": number
   },
-  "databaseSchema": "Provide a brief, high-level JSON-like structure of the core database collections needed (e.g., for MongoDB).",
   "complianceChecklist": ["string", "string", "string"],
   "techStackRecommendation": "A 2-sentence recommendation of the ideal frontend, backend, and database technologies.",
   "brutalVerdict": "Direct, sharp feedback on the technical and legal difficulty of building this. Max 3 sentences."
 }
 `;
 
-// 3. The Core API Route
+// 4. The Core API Route
 app.post('/api/validate', async (req, res) => {
   const { idea } = req.body;
 
-  if (!idea) {
-    return res.status(400).json({ error: 'Please provide a startup idea.' });
-  }
+  if (!idea) return res.status(400).json({ error: 'Please provide a startup idea.' });
 
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: idea,
       config: {
-        systemInstruction: architectSystemPrompt, // Fixed: Linked perfectly to the variable above
-        responseMimeType: "application/json",    // Forces clean JSON output from Gemini
+        systemInstruction: architectSystemPrompt,
+        responseMimeType: "application/json", 
       }
     });
 
-    // Parse the text into a real JavaScript object and send it to the frontend
     const data = JSON.parse(response.text);
+
+    // SAVE TO MONGODB
+    const newEvaluation = new Evaluation({
+      originalIdea: idea,
+      systemComplexity: data.scores.systemComplexity,
+      scalabilityRisk: data.scores.scalabilityRisk,
+      securityRequirements: data.scores.securityRequirements,
+      mvpSpeed: data.scores.mvpSpeed,
+      overallFeasibility: data.scores.overallFeasibility,
+      techStackRecommendation: data.techStackRecommendation,
+      complianceChecklist: data.complianceChecklist,
+      brutalVerdict: data.brutalVerdict
+    });
+    
+    await newEvaluation.save();
+    console.log("Evaluation saved to database!");
+
     res.json(data);
 
   } catch (error) {
@@ -63,7 +95,17 @@ app.post('/api/validate', async (req, res) => {
   }
 });
 
-// 4. Start Server
+// 5. Fetch History Route
+app.get('/api/history', async (req, res) => {
+  try {
+    // Get the 5 most recent evaluations
+    const history = await Evaluation.find().sort({ createdAt: -1 }).limit(5);
+    res.json(history);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch history' });
+  }
+});
+
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`🚀 Technical Architect Backend running on http://localhost:${PORT}`);
