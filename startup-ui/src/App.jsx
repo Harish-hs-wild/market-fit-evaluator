@@ -8,10 +8,9 @@ function App() {
   const [error, setError] = useState('');
   const [history, setHistory] = useState([]);
   
-  // New state for mobile sidebar
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  // Initialize sidebar based on screen size (open on desktop, closed on mobile)
+  const [isSidebarOpen, setIsSidebarOpen] = useState(typeof window !== 'undefined' ? window.innerWidth >= 1024 : true);
 
-  // Fetch history when the page loads
   const fetchHistory = async () => {
     try {
       const response = await axios.get('https://market-fit-api.onrender.com/api/history');
@@ -23,6 +22,14 @@ function App() {
 
   useEffect(() => {
     fetchHistory();
+    
+    // Optional: Auto-adjust sidebar on window resize
+    const handleResize = () => {
+      if (window.innerWidth < 1024) setIsSidebarOpen(false);
+      else setIsSidebarOpen(true);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   const handleValidate = async () => {
@@ -40,7 +47,6 @@ function App() {
         idea: idea
       });
       setResult(response.data);
-      // Refresh the sidebar immediately after generating a new one!
       fetchHistory(); 
     } catch (err) {
       setError("Connection to the intelligence layer failed. Check your backend.");
@@ -49,7 +55,6 @@ function App() {
     }
   };
 
-  // Reconstruct the DB object back into the UI format when a user clicks a history item
   const loadPastEvaluation = (pastItem) => {
     setIdea(pastItem.originalIdea);
     setResult({
@@ -65,9 +70,15 @@ function App() {
       complianceChecklist: pastItem.complianceChecklist || []
     });
     
-    // Auto-close sidebar on mobile after selection
-    setIsSidebarOpen(false);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Close sidebar on mobile after selection
+    if (window.innerWidth < 1024) setIsSidebarOpen(false);
+  };
+
+  const handleNewBlueprint = () => {
+    setIdea('');
+    setResult(null);
+    setError('');
+    if (window.innerWidth < 1024) setIsSidebarOpen(false);
   };
 
   const ScoreBar = ({ label, score }) => {
@@ -92,32 +103,29 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-black text-zinc-100 selection:bg-zinc-800 font-sans antialiased relative overflow-hidden">
+    // Replaced standard scrolling wrapper with a fixed-height app layout
+    <div className="flex h-screen w-full bg-black text-zinc-100 selection:bg-zinc-800 font-sans antialiased overflow-hidden">
       
-      {/* Subtle Background Glow */}
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-indigo-900/20 blur-[120px] pointer-events-none"></div>
-      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-zinc-800/30 blur-[120px] pointer-events-none"></div>
+      {/* Mobile Backdrop Overlay */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 lg:hidden transition-opacity duration-300"
+          onClick={() => setIsSidebarOpen(false)}
+        ></div>
+      )}
 
-      <div className="max-w-7xl mx-auto py-8 lg:py-12 px-6 sm:px-8 relative z-10 flex gap-12">
-        
-        {/* Mobile Sidebar Overlay (Click outside to close) */}
-        {isSidebarOpen && (
-          <div 
-            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 lg:hidden transition-opacity"
-            onClick={() => setIsSidebarOpen(false)}
-          ></div>
-        )}
-
-        {/* LEFT COLUMN: History Sidebar (Responsive Drawer) */}
-        <div className={`
-          fixed inset-y-0 left-0 z-50 w-80 bg-zinc-950 lg:bg-transparent border-r border-zinc-800/50 lg:border-none p-6 lg:p-0 
-          transform transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 lg:w-1/4 h-full lg:h-auto overflow-y-auto
-          ${isSidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'}
-        `}>
-          <div className="flex justify-between items-center mb-6 pl-2 border-l border-zinc-700">
-            <h2 className="text-zinc-500 text-sm uppercase tracking-widest font-mono">Recent Blueprints</h2>
-            
-            {/* Mobile Close Button */}
+      {/* GEMINI-STYLE SIDEBAR */}
+      <div className={`
+        fixed lg:static inset-y-0 left-0 z-50 h-full bg-zinc-950 lg:bg-zinc-950/50 border-r border-zinc-800/50 flex flex-col
+        transition-all duration-300 ease-in-out overflow-hidden
+        ${isSidebarOpen ? 'w-[300px] translate-x-0' : 'w-[300px] -translate-x-full lg:w-0 lg:opacity-0 lg:border-none'}
+      `}>
+        {/* Inner fixed-width container prevents text from squishing during animation */}
+        <div className="w-[300px] h-full flex flex-col p-4">
+          
+          {/* Sidebar Header & New Button */}
+          <div className="flex items-center justify-between mb-6">
+            <span className="text-zinc-500 text-sm uppercase tracking-widest font-mono pl-2">History</span>
             <button 
               onClick={() => setIsSidebarOpen(false)}
               className="lg:hidden p-2 text-zinc-400 hover:text-white rounded-md bg-zinc-900/50"
@@ -127,8 +135,19 @@ function App() {
               </svg>
             </button>
           </div>
+
+          <button 
+            onClick={handleNewBlueprint}
+            className="mb-6 w-full flex items-center gap-3 bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-zinc-800/50 rounded-xl p-3 transition-colors duration-200"
+          >
+            <svg className="w-5 h-5 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            <span className="text-sm font-medium">New Blueprint</span>
+          </button>
           
-          <div className="space-y-3 pb-20 lg:pb-0">
+          {/* Scrollable History List */}
+          <div className="flex-1 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
             {history.length === 0 && (
               <p className="text-zinc-600 text-sm italic pl-2">No past blueprints found.</p>
             )}
@@ -137,36 +156,44 @@ function App() {
               <div 
                 key={item._id} 
                 onClick={() => loadPastEvaluation(item)}
-                className="group cursor-pointer bg-zinc-900/40 hover:bg-zinc-800/80 border border-zinc-800/50 hover:border-zinc-600/50 rounded-2xl p-4 transition-all duration-300"
+                className="group cursor-pointer hover:bg-zinc-900 rounded-lg p-3 transition-all duration-200 border border-transparent hover:border-zinc-800/50"
               >
-                <div className="flex justify-between items-start mb-2">
+                <div className="flex justify-between items-center mb-1">
                   <span className="text-xs font-mono text-zinc-500 group-hover:text-zinc-400">Score: {item.overallFeasibility}</span>
-                  <span className="text-[10px] uppercase text-zinc-600">{new Date(item.createdAt).toLocaleDateString()}</span>
+                  <span className="text-[10px] text-zinc-600">{new Date(item.createdAt).toLocaleDateString()}</span>
                 </div>
-                <p className="text-sm text-zinc-300 font-light line-clamp-2 leading-relaxed">
+                <p className="text-sm text-zinc-300 font-light truncate">
                   {item.originalIdea}
                 </p>
               </div>
             ))}
           </div>
         </div>
+      </div>
 
-        {/* RIGHT COLUMN: Main Input & Results */}
-        <div className="w-full lg:w-3/4">
+      {/* MAIN CONTENT AREA */}
+      <div className="flex-1 flex flex-col h-full relative overflow-y-auto overflow-x-hidden">
+        
+        {/* Subtle Background Glows (Moved inside main area) */}
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-indigo-900/10 blur-[120px] pointer-events-none fixed"></div>
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-zinc-800/20 blur-[120px] pointer-events-none fixed"></div>
+
+        {/* Top Navbar / Hamburger */}
+        <div className="sticky top-0 z-30 p-4 flex items-center gap-4 bg-gradient-to-b from-black/80 to-transparent pb-8">
+          <button 
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            className="p-2.5 text-zinc-400 hover:text-white rounded-full hover:bg-zinc-900/80 transition-all duration-200"
+            title={isSidebarOpen ? "Close sidebar" : "Open sidebar"}
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Inner Content Wrapper */}
+        <div className="max-w-5xl mx-auto w-full px-6 sm:px-8 pb-24 relative z-10">
           
-          {/* Mobile Hamburger Menu Toggle */}
-          <div className="lg:hidden mb-8 flex items-center gap-3">
-            <button 
-              onClick={() => setIsSidebarOpen(true)}
-              className="p-2.5 text-zinc-300 hover:text-white rounded-xl bg-zinc-900/80 border border-zinc-800/50 shadow-lg backdrop-blur-sm transition-all"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </button>
-            <span className="text-zinc-500 font-mono text-sm uppercase tracking-widest">History</span>
-          </div>
-
           {/* Header */}
           <div className="mb-12 space-y-4">
             <h1 className="select-none text-4xl sm:text-5xl md:text-6xl font-medium tracking-tight text-transparent bg-clip-text bg-gradient-to-b from-white to-zinc-500 pb-2">
@@ -230,7 +257,7 @@ function App() {
               </div>
 
               {/* Bottom Row */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-12">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 
                 <div className="bg-zinc-900/40 backdrop-blur-md border border-zinc-800/50 rounded-3xl p-6 sm:p-8">
                   <h3 className="text-zinc-500 text-sm uppercase tracking-widest mb-8 font-mono">Technical Load</h3>
@@ -245,16 +272,6 @@ function App() {
                   <div className="bg-zinc-900/40 backdrop-blur-md border border-zinc-800/50 rounded-3xl p-6 sm:p-8">
                     <h3 className="text-zinc-500 text-sm uppercase tracking-widest mb-4 font-mono">Recommended Stack</h3>
                     <p className="text-zinc-200 font-medium leading-relaxed">{result.techStackRecommendation}</p>
-                  </div>
-
-                  <div className="bg-zinc-900/40 backdrop-blur-md border border-zinc-800/50 rounded-3xl p-6 sm:p-8">
-                    <h3 className="text-zinc-500 text-sm uppercase tracking-widest mb-4 font-mono">Infrastructure Overview</h3>
-                    <div className="text-zinc-300 font-light leading-relaxed space-y-4 text-sm">
-                      <p>
-                        The proposed system architecture is designed for <strong>high-concurrency data ingestion</strong> and 
-                        <strong> transactional integrity</strong>, leveraging a microservices pattern to isolate core services.
-                      </p>
-                    </div>
                   </div>
 
                   <div className="bg-zinc-900/40 backdrop-blur-md border border-zinc-800/50 rounded-3xl p-6 sm:p-8">
